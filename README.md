@@ -4,6 +4,8 @@
 
 Версия: **1.0.0** · Electron **43.3.0** · Windows 10/11 x64 · macOS Intel / Apple Silicon
 
+**[Скачать готовые дистрибутивы для Windows и macOS](https://github.com/mirslava88/timer-plus/releases/latest)**
+
 ## Возможности
 
 - Полноэкранный вывод на один или несколько выбранных мониторов.
@@ -22,7 +24,7 @@
 
 ### Windows
 
-1. Запустите `Timer-Plus-1.0.0-win-x64.exe` из папки `dist`.
+1. Скачайте `Timer-Plus-1.0.0-win-x64.exe` из раздела [Releases](https://github.com/mirslava88/timer-plus/releases/latest) или запустите локальный файл из папки `dist`.
 2. Выберите папку установки и завершите работу мастера.
 3. Откройте **Таймер+** через ярлык на рабочем столе или меню «Пуск».
 
@@ -30,7 +32,7 @@
 
 ### macOS
 
-Исходный код полностью подготовлен для Intel x64 и Apple Silicon arm64. Для каждой архитектуры создаются отдельные `.dmg` и `.zip` командой `npm run package:mac` либо через включённый GitHub Actions workflow. Для распространения без системных предупреждений потребуются Apple Developer ID и notarization.
+Для Intel x64 и Apple Silicon arm64 опубликованы отдельные `.dmg` и `.zip` в разделе [Releases](https://github.com/mirslava88/timer-plus/releases/latest). Их также можно собрать локально командой `npm run package:mac` либо через включённый GitHub Actions workflow. Для распространения без системных предупреждений потребуются Apple Developer ID и notarization.
 
 ## Запуск из исходного кода
 

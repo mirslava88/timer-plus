@@ -1,5 +1,8 @@
 name: Build Timer Plus
 
+permissions:
+  contents: write
+
 on:
   workflow_dispatch:
   push:
@@ -10,33 +13,39 @@ jobs:
   windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: npm
       - run: npm ci
       - run: npm run typecheck
       - run: npm run package:win
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Timer-Plus-Windows
-          path: dist/*.exe
+      - name: Upload Windows installer to release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $installer = Get-Item -LiteralPath 'dist\Timer-Plus-1.0.0-win-x64.exe'
+          $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $installer.FullName).Hash.ToLowerInvariant()
+          "$hash  $($installer.Name)" | Set-Content -Encoding utf8 -LiteralPath 'dist\SHA256SUMS-windows.txt'
+          gh release upload v1.0.0 $installer.FullName 'dist\SHA256SUMS-windows.txt' --clobber --repo $env:GITHUB_REPOSITORY
 
   macos:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: npm
       - run: npm ci
       - run: npm run typecheck
       - run: npm run package:mac
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Timer-Plus-macOS
-          path: |
-            dist/*.dmg
-            dist/*.zip
+      - name: Upload macOS installers to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd dist
+          shasum -a 256 *.dmg *.zip > SHA256SUMS-macos.txt
+          gh release upload v1.0.0 ./*.dmg ./*.zip ./SHA256SUMS-macos.txt --clobber --repo "$GITHUB_REPOSITORY"
