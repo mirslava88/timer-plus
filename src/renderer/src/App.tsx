@@ -1,0 +1,470 @@
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import type { JSX } from 'react'
+import type {
+  DisplayInfo,
+  TimerCentralMode,
+  TimerSettings,
+  TimerState,
+  TimerVisibility
+} from '../../shared'
+import { DEFAULT_TIMER, defaultHeading, normalizeSettings } from './defaults'
+import { EventTimerScene } from './EventTimerScene'
+import {
+  nextTimerTick,
+  normalizeTimePart,
+  secondsFromTimeParts,
+  secondsUntilToday,
+  timePartsFromSeconds
+} from './timer-utils'
+
+type TimePart = 'hours' | 'minutes' | 'seconds'
+type TimeParts = Record<TimePart, string>
+
+const modeOptions: Array<[TimerCentralMode, string]> = [
+  ['current', 'Текущее время'],
+  ['timer', 'Таймер'],
+  ['to-start', 'До начала'],
+  ['to-end', 'До конца']
+]
+
+const visibilityOptions: Array<[keyof TimerVisibility, string]> = [
+  ['clock', 'Часы слева'],
+  ['schedule', 'Начало / конец'],
+  ['heading', 'Заголовок'],
+  ['eventName', 'Название мероприятия'],
+  ['remaining', 'Осталось времени'],
+  ['cost', 'Стоимость']
+]
+
+function cloneTimer(timer: TimerState): TimerState {
+  return {
+    ...timer,
+    headings: { ...timer.headings },
+    visibility: { ...timer.visibility }
+  }
+}
+
+function displayName(display: DisplayInfo, index: number): string {
+  const suffix = `${display.width}×${display.height}`
+  if (display.isPrimary) return `Дисплей ${index} · основной · ${suffix}`
+  return `Дисплей ${index} · ${display.label} · ${suffix}`
+}
+
+export function TimerControl(): JSX.Element {
+  const [timer, setTimer] = useState<TimerState>(() => cloneTimer(DEFAULT_TIMER))
+  const [liveTimer, setLiveTimer] = useState<TimerState | null>(null)
+  const [displays, setDisplays] = useState<DisplayInfo[]>([])
+  const [selectedDisplayIds, setSelectedDisplayIds] = useState<number[]>([])
+  const [ready, setReady] = useState(false)
+  const [dirty, setDirty] = useState(false)
+  const [liveControl, setLiveControl] = useState(false)
+  const [status, setStatus] = useState('Получение списка экранов…')
+  const [editingTime, setEditingTime] = useState(false)
+  const [timePartsDirty, setTimePartsDirty] = useState(false)
+  const [timeParts, setTimeParts] = useState<TimeParts>(() => timePartsFromSeconds(DEFAULT_TIMER.remaining))
+
+  const isLive = liveTimer !== null
+
+  const refreshDisplays = useCallback(async (preferred?: number[]) => {
+    const nextDisplays = await window.timerPlus.listDisplays()
+    setDisplays(nextDisplays)
+    setSelectedDisplayIds((current) => {
+      const source = preferred ?? current
+      const available = new Set(nextDisplays.map((display) => display.id))
+      const valid = source.filter((id) => available.has(id))
+      if (valid.length) return valid
+      const fallback = nextDisplays.find((display) => !display.isPrimary) || nextDisplays[0]
+      return fallback ? [fallback.id] : []
+    })
+    setStatus(nextDisplays.length ? `Найдено экранов: ${nextDisplays.length}` : 'Экраны не найдены')
+  }, [])
+
+  useEffect(() => {
+    let active = true
+    void (async () => {
+      const restored = normalizeSettings(await window.timerPlus.loadSettings())
+      if (!active) return
+      setTimer(restored.timer)
+      setTimeParts(timePartsFromSeconds(restored.timer.remaining))
+      await refreshDisplays(restored.selectedDisplayIds)
+      if (active) setReady(true)
+    })()
+    const unsubscribe = window.timerPlus.onDisplaysChanged((nextDisplays) => {
+      setDisplays(nextDisplays)
+      setSelectedDisplayIds((current) => {
+        const available = new Set(nextDisplays.map((display) => display.id))
+        const valid = current.filter((id) => available.has(id))
+        if (valid.length || !nextDisplays.length) return valid
+        const fallback = nextDisplays.find((display) => !display.isPrimary) || nextDisplays[0]
+        return fallback ? [fallback.id] : []
+      })
+      setStatus(`Список экранов обновлён: ${nextDisplays.length}`)
+    })
+    return () => {
+      active = false
+      unsubscribe()
+    }
+  }, [refreshDisplays])
+
+  useEffect(() => {
+    if (!ready) return
+    const settings: TimerSettings = {
+      timer: { ...cloneTimer(timer), running: false, live: false },
+      selectedDisplayIds
+    }
+    window.timerPlus.saveSettings(settings)
+  }, [ready, selectedDisplayIds, timer])
+
+  useEffect(() => {
+    if (!timer.running && !liveTimer?.running) return
+    const interval = window.setInterval(() => {
+      setTimer((current) => current.running ? nextTimerTick(current) : current)
+      setLiveTimer((current) => current?.running ? nextTimerTick(current) : current)
+    }, 1000)
+    return () => window.clearInterval(interval)
+  }, [timer.running, liveTimer?.running])
+
+  useEffect(() => {
+    if (liveTimer) window.timerPlus.updateLive(liveTimer)
+  }, [liveTimer])
+
+  useEffect(() => {
+    if (!editingTime) setTimeParts(timePartsFromSeconds(timer.remaining))
+  }, [editingTime, timer.remaining])
+
+  const updateDraft = (update: Partial<TimerState>): void => {
+    setTimer((current) => ({
+      ...current,
+      ...update,
+      headings: update.headings ? { ...current.headings, ...update.headings } : current.headings,
+      visibility: update.visibility ? { ...current.visibility, ...update.visibility } : current.visibility
+    }))
+    if (isLive) setDirty(true)
+  }
+
+  const updateTimerControl = (
+    update: Partial<Pick<TimerState, 'duration' | 'remaining' | 'running'>>
+  ): void => {
+    setTimer((current) => ({ ...current, ...update }))
+    if (isLive && liveControl) {
+      setLiveTimer((current) => current ? { ...current, ...update } : current)
+    } else if (isLive) {
+      setDirty(true)
+    }
+  }
+
+  const publish = async (): Promise<void> => {
+    if (!selectedDisplayIds.length) {
+      setStatus('Выберите хотя бы один экран для эфира')
+      return
+    }
+    const output = { ...cloneTimer(timer), live: true }
+    await window.timerPlus.goLive(selectedDisplayIds, output)
+    setTimer((current) => ({ ...current, live: true }))
+    setLiveTimer(output)
+    setDirty(false)
+    setLiveControl(false)
+    setStatus(`Таймер в эфире на экранах: ${selectedDisplayIds.length}`)
+  }
+
+  const updateOutput = async (): Promise<void> => {
+    if (!selectedDisplayIds.length) {
+      setStatus('Выберите хотя бы один экран для эфира')
+      return
+    }
+    const output = { ...cloneTimer(timer), live: true }
+    await window.timerPlus.goLive(selectedDisplayIds, output)
+    setLiveTimer(output)
+    setDirty(false)
+    setStatus('Эфир обновлён')
+  }
+
+  const stopOutput = async (): Promise<void> => {
+    await window.timerPlus.stopLive()
+    setLiveTimer(null)
+    setTimer((current) => ({ ...current, live: false }))
+    setDirty(false)
+    setLiveControl(false)
+    setStatus('Таймер убран из эфира')
+  }
+
+  const selectMode = (mode: TimerCentralMode): void => {
+    const target = mode === 'to-start'
+      ? timer.startTime
+      : mode === 'to-end'
+        ? timer.endTime
+        : null
+    const remaining = target ? secondsUntilToday(target) : null
+    updateDraft({
+      centralTimeMode: mode,
+      ...(remaining === null ? {} : { duration: Math.max(0, remaining), remaining })
+    })
+  }
+
+  const updateSchedule = (field: 'startTime' | 'endTime', value: string): void => {
+    const modeMatches = (field === 'startTime' && timer.centralTimeMode === 'to-start')
+      || (field === 'endTime' && timer.centralTimeMode === 'to-end')
+    const remaining = modeMatches ? secondsUntilToday(value) : null
+    updateDraft({
+      [field]: value,
+      ...(remaining === null ? {} : { duration: Math.max(0, remaining), remaining })
+    })
+  }
+
+  const commitTime = (): void => {
+    if (!timePartsDirty) {
+      setTimeParts(timePartsFromSeconds(timer.remaining))
+      setEditingTime(false)
+      return
+    }
+    const seconds = secondsFromTimeParts(timeParts)
+    updateTimerControl({ duration: seconds, remaining: seconds, running: false })
+    setTimeParts(timePartsFromSeconds(seconds))
+    setEditingTime(false)
+    setTimePartsDirty(false)
+  }
+
+  const adjustMinutes = (minutes: number): void => {
+    const delta = minutes * 60
+    updateTimerControl({
+      duration: Math.max(0, timer.duration + delta),
+      remaining: timer.remaining + delta
+    })
+  }
+
+  const displayRows = useMemo(() => displays.map((display, index) => ({
+    display,
+    name: displayName(display, index)
+  })), [displays])
+
+  if (!ready) {
+    return <div className="loading"><div className="spinner" /><div>Таймер+ запускается…</div></div>
+  }
+
+  return (
+    <main className="control-app">
+      <header className="app-header">
+        <div className="brand">
+          <div className="brand-icon">T+</div>
+          <div>
+            <h1>Таймер+</h1>
+            <p>Самостоятельный таймер мероприятия</p>
+          </div>
+        </div>
+        <div className="display-picker">
+          <div className="display-picker-title">
+            <span>Экраны для эфира</span>
+            <button className="link-button" onClick={() => void refreshDisplays()}>Обновить</button>
+          </div>
+          <div className="display-list">
+            {displayRows.map(({ display, name }) => {
+              const selected = selectedDisplayIds.includes(display.id)
+              return (
+                <button
+                  key={display.id}
+                  className={`display-chip ${selected ? 'selected' : ''}`}
+                  title={name}
+                  onClick={() => {
+                    setSelectedDisplayIds((current) => selected
+                      ? current.filter((id) => id !== display.id)
+                      : [...current, display.id])
+                    if (isLive) setDirty(true)
+                  }}
+                >
+                  <span className="display-check">{selected ? '✓' : ''}</span>
+                  {name}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+        <div className={`live-badge ${isLive ? 'on' : ''}`}>
+          <span />{isLive ? 'В ЭФИРЕ' : 'НЕ В ЭФИРЕ'}
+        </div>
+      </header>
+
+      <div className="workspace">
+        <section className="left-column panel">
+          <h2>Настройка таймера</h2>
+          <div className="form-grid">
+            <label>
+              <span>Название мероприятия</span>
+              <input
+                value={timer.eventName}
+                maxLength={120}
+                onChange={(event) => updateDraft({ eventName: event.target.value })}
+              />
+            </label>
+            <label>
+              <span>Время мероприятия</span>
+              <div className="time-range">
+                <input type="time" value={timer.startTime} onChange={(event) => updateSchedule('startTime', event.target.value)} />
+                <input type="time" value={timer.endTime} onChange={(event) => updateSchedule('endTime', event.target.value)} />
+              </div>
+            </label>
+            <label>
+              <span className="label-row">
+                <span>Текст заголовка</span>
+                {timer.headings[timer.centralTimeMode] !== defaultHeading(timer.centralTimeMode) && (
+                  <button
+                    className="link-button"
+                    onClick={() => updateDraft({
+                      headings: {
+                        ...timer.headings,
+                        [timer.centralTimeMode]: defaultHeading(timer.centralTimeMode)
+                      }
+                    })}
+                  >Авто</button>
+                )}
+              </span>
+              <input
+                value={timer.headings[timer.centralTimeMode]}
+                maxLength={120}
+                onChange={(event) => updateDraft({
+                  headings: { ...timer.headings, [timer.centralTimeMode]: event.target.value }
+                })}
+              />
+            </label>
+            <label>
+              <span>Расчёт стоимости перелимита</span>
+              <div className="cost-row">
+                <div className="unit-input">
+                  <input
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={timer.costPerMinute || ''}
+                    placeholder="Стоимость"
+                    onChange={(event) => updateDraft({ costPerMinute: Math.max(0, Number(event.target.value) || 0) })}
+                  />
+                  <span>₽ / мин</span>
+                </div>
+                <button className="danger-ghost" onClick={() => updateDraft({ overtimeCostTotal: 0 })}>Сбросить итог</button>
+              </div>
+            </label>
+          </div>
+
+          <div className="background-bar">
+            <span>Фон</span>
+            <button onClick={async () => {
+              const image = await window.timerPlus.selectBackground()
+              if (image) updateDraft({ backgroundImage: image })
+            }}>Изображение</button>
+            {timer.backgroundImage && <button onClick={() => updateDraft({ backgroundImage: null })}>Убрать</button>}
+            <div className="segmented compact">
+              <button className={timer.backgroundMode === 'solid' ? 'active' : ''} onClick={() => updateDraft({ backgroundMode: 'solid' })}>Один цвет</button>
+              <button className={timer.backgroundMode === 'gradient' ? 'active' : ''} onClick={() => updateDraft({ backgroundMode: 'gradient' })}>Градиент</button>
+            </div>
+            <label className="color-field">Цвет 1<input type="color" value={timer.backgroundColor} onChange={(event) => updateDraft({ backgroundColor: event.target.value })} /></label>
+            {timer.backgroundMode === 'gradient' && (
+              <>
+                <label className="color-field">Цвет 2<input type="color" value={timer.backgroundGradientColor} onChange={(event) => updateDraft({ backgroundGradientColor: event.target.value })} /></label>
+                <label className="angle-field">Угол<input type="number" min={0} max={360} value={timer.backgroundGradientAngle} onChange={(event) => updateDraft({ backgroundGradientAngle: Math.min(360, Math.max(0, Number(event.target.value) || 0)) })} />°</label>
+              </>
+            )}
+          </div>
+
+          <div className="preview-frame"><EventTimerScene timer={timer} /></div>
+          <div className="preview-caption">Превью — изменения не попадут в эфир до команды «Обновить эфир»</div>
+        </section>
+
+        <aside className="right-column">
+          <section className="panel settings-panel">
+            <h2>Отображение на экране</h2>
+            <p className="section-label">Центральное время</p>
+            <div className="segmented mode-grid">
+              {modeOptions.map(([mode, label]) => (
+                <button key={mode} className={timer.centralTimeMode === mode ? 'active' : ''} onClick={() => selectMode(mode)}>{label}</button>
+              ))}
+            </div>
+            <p className="section-label">Отображаемые элементы</p>
+            <div className="visibility-grid">
+              {visibilityOptions.map(([key, label]) => (
+                <button
+                  key={key}
+                  className={timer.visibility[key] ? 'active' : ''}
+                  onClick={() => updateDraft({ visibility: { ...timer.visibility, [key]: !timer.visibility[key] } })}
+                >{label}</button>
+              ))}
+            </div>
+          </section>
+
+          <section className="panel timer-panel">
+            <h2>Управление таймером</h2>
+            <div className={`time-editor ${timer.remaining < 0 ? 'negative' : ''}`}>
+              {timer.remaining < 0 && <span>−</span>}
+              {(['hours', 'minutes', 'seconds'] as TimePart[]).map((part, index) => (
+                <div className="time-part" key={part}>
+                  {index > 0 && <b>:</b>}
+                  <input
+                    aria-label={part === 'hours' ? 'Часы' : part === 'minutes' ? 'Минуты' : 'Секунды'}
+                    inputMode="numeric"
+                    maxLength={2}
+                    value={timeParts[part]}
+                    onFocus={(event) => {
+                      setEditingTime(true)
+                      setTimePartsDirty(false)
+                      event.currentTarget.select()
+                    }}
+                    onChange={(event) => {
+                      if (!timePartsDirty && timer.running) updateTimerControl({ running: false })
+                      setTimePartsDirty(true)
+                      setTimeParts((current) => ({ ...current, [part]: normalizeTimePart(part, event.target.value) }))
+                    }}
+                    onBlur={commitTime}
+                    onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur() }}
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="time-hint">Нажмите отдельно на часы, минуты или секунды</div>
+            <div className="transport">
+              <button className="pause" title="Пауза" onClick={() => updateTimerControl({ running: false })}>Ⅱ</button>
+              <button className="play" title="Старт" onClick={() => updateTimerControl({ running: true })}>▶</button>
+              <button className="stop" title="Стоп и сброс" onClick={() => updateTimerControl({ running: false, remaining: timer.duration })}>■</button>
+              <button
+                disabled={!isLive}
+                className={`live-control ${liveControl ? 'active' : ''}`}
+                title={isLive ? 'Применять команды управления временем к эфиру немедленно' : 'Сначала отправьте таймер в эфир'}
+                onClick={() => setLiveControl((value) => !value)}
+              >⚡ LIVE</button>
+            </div>
+            <div className="adjust-grid">
+              {[-10, -5, -1, 0, 1, 5, 10].map((minutes) => (
+                <button
+                  key={minutes}
+                  disabled={minutes === 0}
+                  className={minutes < 0 ? 'minus' : minutes > 0 ? 'plus' : ''}
+                  onClick={() => adjustMinutes(minutes)}
+                >{minutes === 0 ? '—' : `${minutes > 0 ? '+' : ''}${minutes} мин`}</button>
+              ))}
+            </div>
+
+            {!isLive ? (
+              <button className="primary-action" onClick={() => void publish()}>Отправить в эфир</button>
+            ) : (
+              <div className="live-actions">
+                <button className="update-action" disabled={!dirty} onClick={() => void updateOutput()}>{dirty ? 'Обновить эфир' : 'Эфир обновлён'}</button>
+                <button className="remove-action" onClick={() => void stopOutput()}>Убрать из эфира</button>
+              </div>
+            )}
+          </section>
+
+          <div className="status-line" title={status}>{status}</div>
+        </aside>
+      </div>
+    </main>
+  )
+}
+
+export function OutputDisplay({ displayId }: { displayId: number }): JSX.Element {
+  const [timer, setTimer] = useState<TimerState | null>(null)
+
+  useEffect(() => {
+    const unsubscribe = window.timerPlus.onLiveState(setTimer)
+    window.timerPlus.outputReady(displayId)
+    return unsubscribe
+  }, [displayId])
+
+  return <div className="output-root">{timer && <EventTimerScene timer={timer} output />}</div>
+}
