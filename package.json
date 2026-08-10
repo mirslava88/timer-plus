@@ -66,6 +66,7 @@
     "mac": {
       "icon": "resources/icon.png",
       "category": "public.app-category.productivity",
+      "executableName": "Timer Plus",
       "identity": "-",
       "hardenedRuntime": true,
       "entitlements": "build/entitlements.mac.plist",

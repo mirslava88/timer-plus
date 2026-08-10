@@ -42,6 +42,13 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run package:mac:x64:dir
+      - name: Verify Intel application signature
+        run: |
+          app_bundle="$(find dist/mac -maxdepth 1 -name '*.app' -type d | head -n 1)"
+          test -n "$app_bundle"
+          codesign --verify --deep --strict --verbose=4 "$app_bundle"
+          codesign --display --verbose=4 "$app_bundle" 2>&1
+          codesign --display --entitlements :- "$app_bundle" 2>&1
       - name: Smoke-test Intel application
         run: |
           app_binary="$(find dist/mac -path '*/Contents/MacOS/*' -type f -perm +111 | head -n 1)"
@@ -51,7 +58,9 @@ jobs:
           sleep 12
           if ! kill -0 "$app_pid" 2>/dev/null; then
             cat /tmp/timer-plus.log
-            wait "$app_pid"
+            crash_report="$(find "$HOME/Library/Logs/DiagnosticReports" -type f -name '*.ips' -mmin -5 | sort | tail -n 1)"
+            if test -n "$crash_report"; then cat "$crash_report"; fi
+            wait "$app_pid" || true
             exit 1
           fi
           kill "$app_pid"
@@ -69,6 +78,13 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run package:mac
+      - name: Verify Apple Silicon application signature
+        run: |
+          app_bundle="$(find dist/mac-arm64 -maxdepth 1 -name '*.app' -type d | head -n 1)"
+          test -n "$app_bundle"
+          codesign --verify --deep --strict --verbose=4 "$app_bundle"
+          codesign --display --verbose=4 "$app_bundle" 2>&1
+          codesign --display --entitlements :- "$app_bundle" 2>&1
       - name: Smoke-test Apple Silicon application
         run: |
           app_binary="$(find dist/mac-arm64 -path '*/Contents/MacOS/*' -type f -perm +111 | head -n 1)"
@@ -78,7 +94,9 @@ jobs:
           sleep 12
           if ! kill -0 "$app_pid" 2>/dev/null; then
             cat /tmp/timer-plus.log
-            wait "$app_pid"
+            crash_report="$(find "$HOME/Library/Logs/DiagnosticReports" -type f -name '*.ips' -mmin -5 | sort | tail -n 1)"
+            if test -n "$crash_report"; then cat "$crash_report"; fi
+            wait "$app_pid" || true
             exit 1
           fi
           kill "$app_pid"
