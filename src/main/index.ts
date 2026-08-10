@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, screen } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu, screen } from 'electron'
 import type { OpenDialogOptions } from 'electron'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { extname, join } from 'node:path'
@@ -249,6 +249,7 @@ function registerIpc(): void {
 }
 
 app.whenReady().then(() => {
+  if (process.platform === 'darwin') Menu.setApplicationMenu(null)
   registerIpc()
   createControlWindow()
   screen.on('display-added', sendDisplayList)
