@@ -31,8 +31,8 @@ jobs:
           "$hash  $($installer.Name)" | Set-Content -Encoding utf8 -LiteralPath 'dist\SHA256SUMS-windows.txt'
           gh release upload v1.0.0 $installer.FullName 'dist\SHA256SUMS-windows.txt' --clobber --repo $env:GITHUB_REPOSITORY
 
-  macos:
-    runs-on: macos-latest
+  macos-intel:
+    runs-on: macos-15-intel
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -41,11 +41,58 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run typecheck
-      - run: npm run package:mac
-      - name: Upload macOS installers to release
+      - run: npm run package:mac:x64
+      - name: Smoke-test Intel application
+        run: |
+          app_binary="$(find dist -path '*/Contents/MacOS/*' -type f -perm +111 | head -n 1)"
+          test -n "$app_binary"
+          "$app_binary" > /tmp/timer-plus.log 2>&1 &
+          app_pid=$!
+          sleep 12
+          if ! kill -0 "$app_pid" 2>/dev/null; then
+            cat /tmp/timer-plus.log
+            wait "$app_pid"
+            exit 1
+          fi
+          kill "$app_pid"
+          wait "$app_pid" || true
+      - name: Upload Intel macOS installers to release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           cd dist
-          shasum -a 256 *.dmg *.zip > SHA256SUMS-macos.txt
-          gh release upload v1.0.0 ./*.dmg ./*.zip ./SHA256SUMS-macos.txt --clobber --repo "$GITHUB_REPOSITORY"
+          shasum -a 256 *-mac-x64.dmg *-mac-x64.zip > SHA256SUMS-macos-x64.txt
+          gh release upload v1.0.0 ./*-mac-x64.dmg ./*-mac-x64.zip ./SHA256SUMS-macos-x64.txt --clobber --repo "$GITHUB_REPOSITORY"
+
+  macos-arm:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run package:mac:arm64
+      - name: Smoke-test Apple Silicon application
+        run: |
+          app_binary="$(find dist -path '*/Contents/MacOS/*' -type f -perm +111 | head -n 1)"
+          test -n "$app_binary"
+          "$app_binary" > /tmp/timer-plus.log 2>&1 &
+          app_pid=$!
+          sleep 12
+          if ! kill -0 "$app_pid" 2>/dev/null; then
+            cat /tmp/timer-plus.log
+            wait "$app_pid"
+            exit 1
+          fi
+          kill "$app_pid"
+          wait "$app_pid" || true
+      - name: Upload Apple Silicon macOS installers to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd dist
+          shasum -a 256 *-mac-arm64.dmg *-mac-arm64.zip > SHA256SUMS-macos-arm64.txt
+          gh release upload v1.0.0 ./*-mac-arm64.dmg ./*-mac-arm64.zip ./SHA256SUMS-macos-arm64.txt --clobber --repo "$GITHUB_REPOSITORY"

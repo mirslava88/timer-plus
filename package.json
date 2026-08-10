@@ -12,7 +12,9 @@
     "build": "electron-vite build",
     "icon": "node scripts/generate-icon.mjs",
     "package:win": "npm run icon && electron-vite build && electron-builder --win nsis --x64 --publish never",
-    "package:mac": "npm run icon && electron-vite build && electron-builder --mac dmg zip --x64 --arm64 --publish never"
+    "package:mac": "npm run icon && electron-vite build && electron-builder --mac dmg zip --x64 --arm64 --publish never",
+    "package:mac:x64": "npm run icon && electron-vite build && electron-builder --mac dmg zip --x64 --publish never",
+    "package:mac:arm64": "npm run icon && electron-vite build && electron-builder --mac dmg zip --arm64 --publish never"
   },
   "devDependencies": {
     "@types/node": "^26.1.2",

@@ -4,6 +4,14 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import { extname, join } from 'node:path'
 import type { DisplayInfo, TimerSettings, TimerState } from '../shared'
 
+// Electron 43 can crash while starting its GPU process on some Intel Macs
+// running macOS 15. Keep hardware acceleration everywhere else, but use the
+// stable software-rendering path on Intel macOS before Electron becomes ready.
+if (process.platform === 'darwin' && process.arch === 'x64') {
+  app.disableHardwareAcceleration()
+  app.commandLine.appendSwitch('disable-gpu')
+}
+
 let controlWindow: BrowserWindow | null = null
 const outputWindows = new Map<number, BrowserWindow>()
 let liveTimer: TimerState | null = null
