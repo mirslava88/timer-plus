@@ -22,20 +22,12 @@ export function nextTimerTick(timer: TimerState): TimerState {
   }
 }
 
-export function secondsUntilToday(time: string): number {
+export function secondsUntilTime(now: Date, time: string): number {
   const match = /^(\d{2}):(\d{2})$/.exec(time)
   if (!match) return 0
-  const target = new Date()
+  const target = new Date(now)
   target.setHours(Number(match[1]), Number(match[2]), 0, 0)
-  return Math.round((target.getTime() - Date.now()) / 1000)
-}
-
-export function secondsUntilEnd(now: Date, endTime: string): number {
-  const match = /^(\d{2}):(\d{2})$/.exec(endTime)
-  if (!match) return 0
-  const end = new Date(now)
-  end.setHours(Number(match[1]), Number(match[2]), 0, 0)
-  return Math.round((end.getTime() - now.getTime()) / 1000)
+  return Math.round((target.getTime() - now.getTime()) / 1000)
 }
 
 export function timePartsFromSeconds(totalSeconds: number): Record<'hours' | 'minutes' | 'seconds', string> {

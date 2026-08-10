@@ -1,5 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
+import '@fontsource/inter/100.css'
+import '@fontsource/inter/300.css'
 import { OutputDisplay, TimerControl } from './App'
 import './styles.css'
 

@@ -18,6 +18,7 @@
     "package:mac:x64:dir": "npm run icon && electron-vite build && electron-builder --config electron-builder.mac.yml --mac dir --x64 --publish never"
   },
   "devDependencies": {
+    "@fontsource/inter": "^5.3.0",
     "@types/node": "^26.1.2",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",

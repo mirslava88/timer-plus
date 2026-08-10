@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { JSX } from 'react'
 import type { TimerState } from '../../shared'
-import { formatTimer, secondsUntilEnd } from './timer-utils'
+import { formatTimer, secondsUntilTime } from './timer-utils'
 
 function currentClock(date: Date): string {
   return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
@@ -23,11 +23,18 @@ export function EventTimerScene({ timer, output = false }: { timer: TimerState; 
     return () => window.clearInterval(interval)
   }, [])
 
-  const overtime = timer.centralTimeMode !== 'current' && timer.remaining < 0
+  const centralSeconds = timer.centralTimeMode === 'timer'
+    ? timer.remaining
+    : timer.centralTimeMode === 'to-start'
+      ? secondsUntilTime(now, timer.startTime)
+      : timer.centralTimeMode === 'to-end'
+        ? secondsUntilTime(now, timer.endTime)
+        : null
+  const overtime = centralSeconds !== null && centralSeconds < 0
   const centralText = timer.centralTimeMode === 'current'
     ? currentClockWithSeconds(now)
-    : formatTimer(timer.remaining)
-  const scheduledRemaining = secondsUntilEnd(now, timer.endTime)
+    : formatTimer(centralSeconds ?? 0)
+  const scheduledRemaining = secondsUntilTime(now, timer.endTime)
   const formattedCost = Math.max(0, timer.overtimeCostTotal).toLocaleString('ru-RU', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2

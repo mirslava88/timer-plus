@@ -13,7 +13,6 @@ import {
   nextTimerTick,
   normalizeTimePart,
   secondsFromTimeParts,
-  secondsUntilToday,
   timePartsFromSeconds
 } from './timer-utils'
 
@@ -189,26 +188,11 @@ export function TimerControl(): JSX.Element {
   }
 
   const selectMode = (mode: TimerCentralMode): void => {
-    const target = mode === 'to-start'
-      ? timer.startTime
-      : mode === 'to-end'
-        ? timer.endTime
-        : null
-    const remaining = target ? secondsUntilToday(target) : null
-    updateDraft({
-      centralTimeMode: mode,
-      ...(remaining === null ? {} : { duration: Math.max(0, remaining), remaining })
-    })
+    updateDraft({ centralTimeMode: mode })
   }
 
   const updateSchedule = (field: 'startTime' | 'endTime', value: string): void => {
-    const modeMatches = (field === 'startTime' && timer.centralTimeMode === 'to-start')
-      || (field === 'endTime' && timer.centralTimeMode === 'to-end')
-    const remaining = modeMatches ? secondsUntilToday(value) : null
-    updateDraft({
-      [field]: value,
-      ...(remaining === null ? {} : { duration: Math.max(0, remaining), remaining })
-    })
+    updateDraft({ [field]: value })
   }
 
   const commitTime = (): void => {

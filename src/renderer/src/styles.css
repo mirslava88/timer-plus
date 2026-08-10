@@ -1,5 +1,6 @@
 :root {
   font-family: Inter, "Segoe UI", Arial, sans-serif;
+  font-weight: 300;
   color: #eef5f2;
   background: #0a0f0e;
   font-synthesis: none;
@@ -94,7 +95,7 @@ button:disabled {
   border-radius: 14px;
   color: #06110d;
   background: linear-gradient(135deg, #25dd89, #18acd0);
-  font-weight: 900;
+  font-weight: 300;
   font-size: 18px;
   box-shadow: 0 8px 24px rgba(20, 199, 122, .2);
 }
@@ -181,7 +182,7 @@ button:disabled {
   color: #7d8984;
   background: #121a18;
   font-size: 9px;
-  font-weight: 800;
+  font-weight: 300;
   letter-spacing: .08em;
 }
 
@@ -223,7 +224,7 @@ button:disabled {
   margin: 0;
   color: #eef5f2;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 300;
   text-align: center;
 }
 
@@ -498,7 +499,7 @@ input[type="time"] {
   justify-content: center;
   gap: 4px;
   color: #f5faf8;
-  font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+  font-family: Inter, "Segoe UI", Arial, sans-serif;
   font-size: clamp(30px, 3.4vw, 52px);
   font-variant-numeric: tabular-nums;
   font-weight: 300;
@@ -555,7 +556,7 @@ input[type="time"] {
   border: 0;
   border-radius: 50%;
   background: #15201c;
-  font-weight: 800;
+  font-weight: 300;
 }
 
 .transport .pause { color: #eabb44; }
@@ -570,7 +571,7 @@ input[type="time"] {
   color: #607069;
   background: #111a17;
   font-size: 8px;
-  font-weight: 900;
+  font-weight: 300;
   letter-spacing: .05em;
 }
 
@@ -621,7 +622,7 @@ input[type="time"] {
   border-radius: 999px;
   color: #fff;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 300;
 }
 
 .primary-action {
@@ -715,7 +716,7 @@ input[type="time"] {
 
 .scene-time {
   font-size: min(13.4cqw, 25cqh);
-  font-weight: 200;
+  font-weight: 100;
   font-variant-numeric: tabular-nums;
   letter-spacing: -.055em;
   line-height: .9;
