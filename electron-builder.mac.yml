@@ -1,0 +1,31 @@
+appId: com.mirslava.timerplus
+productName: Timer Plus
+artifactName: Timer-Plus-${version}-${os}-${arch}.${ext}
+asar: true
+
+directories:
+  output: dist
+
+files:
+  - out/**/*
+  - "!**/*.map"
+
+mac:
+  icon: resources/icon.png
+  category: public.app-category.productivity
+  executableName: Timer Plus
+  identity: "-"
+  hardenedRuntime: true
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  extendInfo:
+    CFBundleDisplayName: Таймер+
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+    - target: zip
+      arch:
+        - x64
+        - arm64
