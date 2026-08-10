@@ -32,7 +32,7 @@
 
 ### macOS
 
-Для Intel x64 и Apple Silicon arm64 опубликованы отдельные `.dmg` и `.zip` в разделе [Releases](https://github.com/mirslava88/timer-plus/releases/latest). Их также можно собрать локально командой `npm run package:mac` либо через включённый GitHub Actions workflow. Для распространения без системных предупреждений потребуются Apple Developer ID и notarization.
+Для Intel x64 и Apple Silicon arm64 опубликованы отдельные `.dmg` и `.zip` в разделе [Releases](https://github.com/mirslava88/timer-plus/releases/latest). Их также можно собрать локально командой `npm run package:mac` либо через включённый GitHub Actions workflow. Сборки имеют ad-hoc подпись с необходимыми Electron JIT-entitlements, но не нотариализованы Apple. Для распространения без системных предупреждений потребуются Apple Developer ID и notarization.
 
 ## Запуск из исходного кода
 
