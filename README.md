@@ -30,7 +30,7 @@
 
 ### macOS
 
-Исходный код полностью подготовлен для Intel и Apple Silicon. Файлы `.dmg` и `.zip` собираются на Mac командой `npm run package:mac` либо через включённый GitHub Actions workflow. Для распространения без системных предупреждений потребуются Apple Developer ID и notarization.
+Исходный код полностью подготовлен для Intel x64 и Apple Silicon arm64. Для каждой архитектуры создаются отдельные `.dmg` и `.zip` командой `npm run package:mac` либо через включённый GitHub Actions workflow. Для распространения без системных предупреждений потребуются Apple Developer ID и notarization.
 
 ## Запуск из исходного кода
 
