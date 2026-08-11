@@ -21,6 +21,7 @@ export interface TimerState {
   backgroundColor: string
   backgroundGradientColor: string
   backgroundGradientAngle: number
+  fontColor: string
   backgroundImage: string | null
   centralTimeMode: TimerCentralMode
   visibility: TimerVisibility

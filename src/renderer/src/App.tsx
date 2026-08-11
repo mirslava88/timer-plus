@@ -13,6 +13,7 @@ import {
   nextTimerTick,
   normalizeTimePart,
   secondsFromTimeParts,
+  secondsUntilTime,
   timePartsFromSeconds
 } from './timer-utils'
 
@@ -31,7 +32,7 @@ const visibilityOptions: Array<[keyof TimerVisibility, string]> = [
   ['schedule', 'Начало / конец'],
   ['heading', 'Заголовок'],
   ['eventName', 'Название мероприятия'],
-  ['remaining', 'Осталось времени'],
+  ['remaining', 'До завершения'],
   ['cost', 'Стоимость']
 ]
 
@@ -216,6 +217,14 @@ export function TimerControl(): JSX.Element {
     })
   }
 
+  const syncTimerToNow = (): void => {
+    const remaining = secondsUntilTime(new Date(), timer.endTime)
+    updateTimerControl({
+      duration: Math.max(0, remaining),
+      remaining
+    })
+  }
+
   const displayRows = useMemo(() => displays.map((display, index) => ({
     display,
     name: displayName(display, index)
@@ -272,23 +281,8 @@ export function TimerControl(): JSX.Element {
           <h2>Настройка таймера</h2>
           <div className="form-grid">
             <label>
-              <span>Название мероприятия</span>
-              <input
-                value={timer.eventName}
-                maxLength={120}
-                onChange={(event) => updateDraft({ eventName: event.target.value })}
-              />
-            </label>
-            <label>
-              <span>Время мероприятия</span>
-              <div className="time-range">
-                <input type="time" value={timer.startTime} onChange={(event) => updateSchedule('startTime', event.target.value)} />
-                <input type="time" value={timer.endTime} onChange={(event) => updateSchedule('endTime', event.target.value)} />
-              </div>
-            </label>
-            <label>
               <span className="label-row">
-                <span>Текст заголовка</span>
+                <span>Заголовок</span>
                 {timer.headings[timer.centralTimeMode] !== defaultHeading(timer.centralTimeMode) && (
                   <button
                     className="link-button"
@@ -307,6 +301,21 @@ export function TimerControl(): JSX.Element {
                 onChange={(event) => updateDraft({
                   headings: { ...timer.headings, [timer.centralTimeMode]: event.target.value }
                 })}
+              />
+            </label>
+            <label>
+              <span>Время мероприятия</span>
+              <div className="time-range">
+                <input type="time" value={timer.startTime} onChange={(event) => updateSchedule('startTime', event.target.value)} />
+                <input type="time" value={timer.endTime} onChange={(event) => updateSchedule('endTime', event.target.value)} />
+              </div>
+            </label>
+            <label>
+              <span>Название мероприятия</span>
+              <input
+                value={timer.eventName}
+                maxLength={120}
+                onChange={(event) => updateDraft({ eventName: event.target.value })}
               />
             </label>
             <label>
@@ -340,6 +349,7 @@ export function TimerControl(): JSX.Element {
               <button className={timer.backgroundMode === 'gradient' ? 'active' : ''} onClick={() => updateDraft({ backgroundMode: 'gradient' })}>Градиент</button>
             </div>
             <label className="color-field">Цвет 1<input type="color" value={timer.backgroundColor} onChange={(event) => updateDraft({ backgroundColor: event.target.value })} /></label>
+            <label className="color-field">Цвет шрифта<input type="color" value={timer.fontColor} onChange={(event) => updateDraft({ fontColor: event.target.value })} /></label>
             {timer.backgroundMode === 'gradient' && (
               <>
                 <label className="color-field">Цвет 2<input type="color" value={timer.backgroundGradientColor} onChange={(event) => updateDraft({ backgroundGradientColor: event.target.value })} /></label>
@@ -417,10 +427,10 @@ export function TimerControl(): JSX.Element {
               {[-10, -5, -1, 0, 1, 5, 10].map((minutes) => (
                 <button
                   key={minutes}
-                  disabled={minutes === 0}
-                  className={minutes < 0 ? 'minus' : minutes > 0 ? 'plus' : ''}
-                  onClick={() => adjustMinutes(minutes)}
-                >{minutes === 0 ? '—' : `${minutes > 0 ? '+' : ''}${minutes} мин`}</button>
+                  className={minutes < 0 ? 'minus' : minutes > 0 ? 'plus' : 'now'}
+                  onClick={() => minutes === 0 ? syncTimerToNow() : adjustMinutes(minutes)}
+                  title={minutes === 0 ? 'Синхронизировать таймер с оставшимся временем до конца мероприятия' : undefined}
+                >{minutes === 0 ? 'Сейчас' : `${minutes > 0 ? '+' : ''}${minutes} мин`}</button>
               ))}
             </div>
 

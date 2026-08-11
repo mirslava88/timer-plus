@@ -16,6 +16,7 @@ export const DEFAULT_TIMER: TimerState = {
   backgroundColor: '#18c56e',
   backgroundGradientColor: '#19b9d1',
   backgroundGradientAngle: 115,
+  fontColor: '#ffffff',
   backgroundImage: null,
   centralTimeMode: 'to-end',
   visibility: {
@@ -103,6 +104,7 @@ export function normalizeSettings(raw: unknown): TimerSettings {
         0,
         360
       ),
+      fontColor: color(timerRaw.fontColor, DEFAULT_TIMER.fontColor),
       backgroundImage: typeof timerRaw.backgroundImage === 'string'
         && timerRaw.backgroundImage.startsWith('data:image/')
         ? timerRaw.backgroundImage

@@ -1,5 +1,13 @@
+@font-face {
+  font-family: 'SB Sans Display';
+  src: url('./assets/fonts/SBSansDisplay-Light.otf') format('opentype');
+  font-style: normal;
+  font-weight: 300;
+  font-display: block;
+}
+
 :root {
-  font-family: Inter, "Segoe UI", Arial, sans-serif;
+  font-family: 'SB Sans Display', sans-serif;
   font-weight: 300;
   color: #eef5f2;
   background: #0a0f0e;
@@ -499,7 +507,7 @@ input[type="time"] {
   justify-content: center;
   gap: 4px;
   color: #f5faf8;
-  font-family: Inter, "Segoe UI", Arial, sans-serif;
+  font-family: 'SB Sans Display', sans-serif;
   font-size: clamp(30px, 3.4vw, 52px);
   font-variant-numeric: tabular-nums;
   font-weight: 300;
@@ -613,6 +621,16 @@ input[type="time"] {
   background: rgba(15, 92, 56, .35);
 }
 
+.adjust-grid button.now {
+  color: #c5d0cb;
+  background: #18221e;
+}
+
+.adjust-grid button.now:hover {
+  color: #fff;
+  background: #26332e;
+}
+
 .primary-action,
 .live-actions button {
   width: 100%;
@@ -679,9 +697,9 @@ input[type="time"] {
 
 .scene-clock {
   position: absolute;
-  left: 1.45cqw;
-  top: 1.1cqh;
-  font-size: min(6.5cqw, 12cqh);
+  left: 2.2cqw;
+  top: 2.7cqh;
+  font-size: min(5.2cqw, 9.3cqh);
   font-weight: 300;
   font-variant-numeric: tabular-nums;
   line-height: 1;
@@ -689,8 +707,8 @@ input[type="time"] {
 
 .scene-schedule {
   position: absolute;
-  right: 2.1cqw;
-  top: 2.3cqh;
+  right: 2.2cqw;
+  top: 2.5cqh;
   font-size: min(2.65cqw, 5.2cqh);
   font-weight: 300;
   font-variant-numeric: tabular-nums;
@@ -700,25 +718,33 @@ input[type="time"] {
 
 .scene-center {
   position: absolute;
-  left: 50%;
-  top: 50.5%;
-  width: 58cqw;
-  transform: translate(-50%, -50%);
+  inset: 0;
   text-align: center;
+  pointer-events: none;
 }
 
 .scene-heading {
-  margin-bottom: 2.2cqh;
+  position: absolute;
+  left: 50%;
+  top: 31.2cqh;
+  width: 78cqw;
+  transform: translate(-50%, -50%);
   font-size: min(3.3cqw, 6.4cqh);
   font-weight: 300;
   line-height: 1;
 }
 
 .scene-time {
-  font-size: min(13.4cqw, 25cqh);
-  font-weight: 100;
+  position: absolute;
+  left: 50%;
+  top: 49.7cqh;
+  width: 82cqw;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+  font-size: min(14.1cqw, 26.5cqh);
+  font-weight: 300;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -.055em;
+  letter-spacing: -.04em;
   line-height: .9;
 }
 
@@ -728,10 +754,13 @@ input[type="time"] {
 }
 
 .scene-event-wrap {
-  width: 76%;
-  margin: 4cqh auto 0;
-  padding-top: 3.1cqh;
-  border-top: 1px solid rgba(255, 255, 255, .35);
+  position: absolute;
+  left: 50%;
+  top: 65.8cqh;
+  width: 60cqw;
+  padding-top: 4.2cqh;
+  transform: translateX(-50%);
+  border-top: 1px solid color-mix(in srgb, currentColor 35%, transparent);
 }
 
 .scene-event {
@@ -747,15 +776,15 @@ input[type="time"] {
 .scene-remaining,
 .scene-cost {
   position: absolute;
-  bottom: 2.4cqh;
+  bottom: 3.7cqh;
   font-size: min(2.55cqw, 4.8cqh);
   font-weight: 300;
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
 
-.scene-remaining { left: 1.45cqw; }
-.scene-cost { right: 2.1cqw; }
+.scene-remaining { left: 2.2cqw; }
+.scene-cost { right: 2.2cqw; }
 
 .output-root {
   width: 100%;

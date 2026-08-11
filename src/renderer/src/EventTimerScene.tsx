@@ -44,7 +44,10 @@ export function EventTimerScene({ timer, output = false }: { timer: TimerState; 
     : timer.backgroundColor
 
   return (
-    <div className={`timer-scene ${output ? 'timer-scene-output' : ''}`} style={{ background }}>
+    <div
+      className={`timer-scene ${output ? 'timer-scene-output' : ''}`}
+      style={{ background, color: timer.fontColor }}
+    >
       {timer.backgroundImage && <img className="scene-background" src={timer.backgroundImage} draggable={false} />}
 
       {timer.visibility.clock && <div className="scene-clock">{currentClock(now)}</div>}
@@ -69,7 +72,7 @@ export function EventTimerScene({ timer, output = false }: { timer: TimerState; 
       </div>
 
       {timer.visibility.remaining && (
-        <div className="scene-remaining">Осталось времени: {formatTimer(scheduledRemaining)}</div>
+        <div className="scene-remaining">До завершения: {formatTimer(scheduledRemaining)}</div>
       )}
 
       {timer.visibility.cost && (
