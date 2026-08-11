@@ -631,6 +631,12 @@ input[type="time"] {
   background: #26332e;
 }
 
+.adjust-grid button.now:disabled {
+  color: #4d5a55;
+  background: #101815;
+  opacity: .55;
+}
+
 .primary-action,
 .live-actions button {
   width: 100%;

@@ -13,7 +13,6 @@ import {
   nextTimerTick,
   normalizeTimePart,
   secondsFromTimeParts,
-  secondsUntilTime,
   timePartsFromSeconds
 } from './timer-utils'
 
@@ -217,12 +216,19 @@ export function TimerControl(): JSX.Element {
     })
   }
 
-  const syncTimerToNow = (): void => {
-    const remaining = secondsUntilTime(new Date(), timer.endTime)
-    updateTimerControl({
-      duration: Math.max(0, remaining),
-      remaining
-    })
+  const restoreTimerFromLive = (): void => {
+    if (!liveTimer) return
+    const nextTimer = {
+      ...timer,
+      duration: liveTimer.duration,
+      remaining: liveTimer.remaining,
+      running: liveTimer.running
+    }
+    setTimer(nextTimer)
+    setTimeParts(timePartsFromSeconds(liveTimer.remaining))
+    setEditingTime(false)
+    setTimePartsDirty(false)
+    setDirty(JSON.stringify(nextTimer) !== JSON.stringify(liveTimer))
   }
 
   const displayRows = useMemo(() => displays.map((display, index) => ({
@@ -427,9 +433,14 @@ export function TimerControl(): JSX.Element {
               {[-10, -5, -1, 0, 1, 5, 10].map((minutes) => (
                 <button
                   key={minutes}
+                  disabled={minutes === 0 && !liveTimer}
                   className={minutes < 0 ? 'minus' : minutes > 0 ? 'plus' : 'now'}
-                  onClick={() => minutes === 0 ? syncTimerToNow() : adjustMinutes(minutes)}
-                  title={minutes === 0 ? 'Синхронизировать таймер с оставшимся временем до конца мероприятия' : undefined}
+                  onClick={() => minutes === 0 ? restoreTimerFromLive() : adjustMinutes(minutes)}
+                  title={minutes === 0
+                    ? liveTimer
+                      ? 'Вернуть в превью время и состояние таймера, которые сейчас идут в эфире'
+                      : 'Сначала отправьте таймер в эфир'
+                    : undefined}
                 >{minutes === 0 ? 'Сейчас' : `${minutes > 0 ? '+' : ''}${minutes} мин`}</button>
               ))}
             </div>
